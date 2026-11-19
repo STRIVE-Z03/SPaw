@@ -1,0 +1,5 @@
+pypdfium2==5.14.0
+Pillow==12.3.0
+numpy==2.3.5
+opencv-python-headless==5.0.0.93
+edge-tts==7.3.1

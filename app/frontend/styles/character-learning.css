@@ -1,0 +1,225 @@
+.character-learning {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px 4px 24px;
+}
+.character-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  min-height: 112px;
+  text-align: center;
+  border-bottom: 1px solid #edf0f4;
+  margin-bottom: 20px;
+}
+.character-title h1 {
+  font-size: 64px;
+  line-height: 1.2;
+  font-weight: 600;
+  margin: 0;
+}
+.character-title > div {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.character-title strong {
+  font-size: 24px;
+  line-height: 1.4;
+  color: #202938;
+}
+.character-title button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #246bc4;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: #f3f7ff;
+}
+.character-learning h2 {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: #647080;
+  margin: 0 0 12px;
+}
+.character-meaning,
+.character-words,
+.character-example {
+  padding: 0 8px;
+  margin: 22px 0;
+}
+.character-learning ruby {
+  ruby-align: center;
+  margin-right: 0.12em;
+}
+.character-learning rt {
+  font-size: 0.54em;
+  line-height: 1.2;
+  font-weight: 400;
+  color: #667387;
+  letter-spacing: 0;
+}
+.character-learning p {
+  font-size: var(--chinese-font, 22px);
+  line-height: 2.4;
+  overflow-wrap: break-word;
+  margin: 0;
+}
+.character-words > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.character-words button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 64px;
+  border: 1px solid #e7ebf1;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 22px;
+  line-height: 2.3;
+}
+.character-words button > .icon {
+  width: 17px;
+  height: 17px;
+  color: #246bc4;
+}
+.character-reading-choices {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+}
+.character-reading-choices button {
+  padding: 5px 13px;
+  border: 1px solid #e3e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.character-reading-choices button[aria-pressed="true"] {
+  background: #edf4ff;
+  color: #246bc4;
+  border-color: #c8dcf8;
+}
+.character-learning .character-dictation-note,
+.character-learning .character-audio-status,
+.character-learning .character-preview-note {
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  color: #7b8592;
+  margin-top: 10px;
+}
+.character-learning .character-audio-status {
+  min-height: 20px;
+}
+.character-learning .primary {
+  margin-top: 8px;
+}
+.character-example .text-action {
+  font-size: 13px;
+  color: #246bc4;
+  margin-top: 6px;
+}
+@media (max-width: 600px) {
+  .character-learning {
+    padding: 8px 0 20px;
+  }
+  .character-title {
+    gap: 24px;
+    min-height: 105px;
+  }
+  .character-title h1 {
+    font-size: 58px;
+  }
+  .character-meaning,
+  .character-words,
+  .character-example {
+    padding: 0 2px;
+    margin: 18px 0;
+  }
+  .character-learning p {
+    line-height: 2.4;
+  }
+  .character-learning .primary {
+    min-height: 44px;
+  }
+}
+
+.character-words button:last-child:nth-child(odd) {
+  grid-column: 1/-1;
+}
+.character-learning .character-sandhi-note {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #647080;
+  text-align: center;
+  margin: 12px 0;
+}
+
+.character-meaning p {
+  text-wrap: pretty;
+}
+.character-sources {
+  margin-top: 20px;
+  border-top: 1px solid #edf0f4;
+  padding-top: 12px;
+  font-size: 12px;
+  color: #7b8592;
+}
+.character-sources summary {
+  cursor: pointer;
+}
+.character-sources p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 8px;
+}
+.character-sources a {
+  color: #526b89;
+}
+.character-ruby-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.character-meaning-label {
+  display: block;
+  color: #647080;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 6px 0;
+}
+.character-meaning-context {
+  display: block;
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin: 4px 0 8px;
+}
+.character-meaning p {
+  white-space: pre-line;
+}
+.character-original-fields {
+  display: grid;
+  grid-template-columns: minmax(5em, 0.65fr) minmax(0, 1.35fr);
+  gap: 7px 12px;
+  margin: 12px 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.character-original-fields dt {
+  color: #7b8592;
+}
+.character-original-fields dd {
+  min-width: 0;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

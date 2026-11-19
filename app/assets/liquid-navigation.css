@@ -1,0 +1,81 @@
+/* Liquid navigation only: page colours, content and controls stay unchanged. */
+.liquid-navigation { display:none; }
+@media (max-width: 1023px) {
+  body.has-liquid-navigation .page { padding-bottom:calc(102px + env(safe-area-inset-bottom)) !important; }
+  body.has-liquid-navigation[data-view="ai"] .page { height:calc(var(--learning-vh,100dvh) - 180px - env(safe-area-inset-bottom)) !important; }
+  .liquid-navigation {
+    position:fixed; z-index:45; left:50%; bottom:calc(12px + env(safe-area-inset-bottom));
+    width:min(360px, calc(100vw - 32px)); transform:translateX(-50%); display:flex;
+    gap:0; align-items:center; user-select:none; -webkit-user-select:none;
+    filter:drop-shadow(0 7px 10px rgba(37,66,96,.12));
+  }
+  .liquid-navigation.is-keyboard-open { display:none; }
+  .liquid-dock {
+    flex:1; min-width:0; height:62px; position:relative; isolation:isolate;
+    border-radius:999px; touch-action:none;
+  }
+  .liquid-base {
+    position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.80),rgba(255,255,255,.61));
+    -webkit-backdrop-filter:blur(10px) saturate(1.08);backdrop-filter:blur(10px) saturate(1.08);
+    border:1px solid rgba(255,255,255,.82);
+    box-shadow:0 3px 13px rgba(35,44,47,.055),inset 0 1px 1px #fff,inset 0 -1px 1px rgba(210,214,214,.3);
+  }
+  .liquid-base::before { content:"";position:absolute;inset:1px;border-radius:inherit;border:1px solid rgba(255,255,255,.38); }
+  .liquid-tabs { position:relative; z-index:3; height:100%; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); }
+  .liquid-tab {
+    min-width:0; min-height:48px; padding:2px 0; border:0; background:transparent;
+    color:#171b1d; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; font-size:11px; line-height:1.15; white-space:nowrap; touch-action:none;
+  }
+  .liquid-tab .icon { width:21px; height:21px; stroke-width:2.2; }
+  .liquid-tab.is-active, .liquid-tab.is-hint { color:#2e78ab; font-weight:700; }
+  .liquid-tab.is-active .icon,.liquid-tab.is-hint .icon{color:#5ba4d6}
+  .liquid-tab:focus-visible, .liquid-plus:focus-visible { outline:3px solid #2469dc; outline-offset:2px; }
+  .liquid-lens {
+    position:absolute;left:0;top:50%;z-index:4;height:50px;width:var(--liquid-width,64px);
+    border-radius:999px;pointer-events:none;transform-origin:center center;
+    transform:translate3d(var(--liquid-x,0px),-50%,0) scale(var(--liquid-scale-x,1),var(--liquid-scale-y,1));
+    background:rgba(116,170,207,.115);
+    border:1px solid rgba(255,255,255,.42);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.58),inset 0 -1px 1px rgba(104,116,111,.035);
+    transition:background .16s ease,box-shadow .16s ease,border-color .16s ease;
+    will-change:transform;overflow:hidden;
+  }
+  .liquid-dock:not(.has-refraction) .liquid-lens { z-index:2; }
+  .liquid-navigation.is-dragging .liquid-lens {
+    background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.86);
+    box-shadow:0 2px 9px rgba(83,96,90,.09),inset 0 2px 3px rgba(255,255,255,.95),inset 0 -2px 3px rgba(156,168,160,.10),inset 2px 0 3px rgba(255,255,255,.82),inset -2px 0 3px rgba(255,255,255,.7);
+  }
+  .liquid-lens::before { content:"";position:absolute;inset:2px;border-radius:inherit;border:1px solid rgba(255,255,255,.32);pointer-events:none; }
+  .liquid-lens::after { content:"";position:absolute;left:12%;right:12%;top:2px;height:4px;border-radius:50%;background:rgba(255,255,255,.28);filter:blur(1px);pointer-events:none; }
+  .liquid-gl-canvas { position:absolute;inset:0;width:100%;height:100%; }
+  .liquid-plus {
+    align-self:center;justify-self:center;position:relative;width:48px;height:36px;min-width:0;min-height:0;padding:0;border:0;border-radius:999px;
+    display:grid;place-items:center;color:#245e88;background:linear-gradient(115deg,#c9e5f8,#8dc3e9);box-shadow:inset 0 1px 1px rgba(255,255,255,.3);
+    transition:transform .2s cubic-bezier(.18,.85,.25,1.35);
+  }
+  .liquid-plus:active { transform:scale(.93); }
+  .liquid-plus .icon { width:23px;height:23px;stroke-width:2.7; }
+  .web-header nav > button.web-record-trigger { display:flex; align-items:center; justify-content:center; gap:5px; font-size:14px; font-weight:600; color:#344966; }
+  .web-record-trigger .icon { width:21px; height:21px; }
+  .web-header nav > button.liquid-focus-plus { display:grid;place-items:center;width:40px;height:40px;min-width:40px;min-height:40px;padding:0;border:1px solid rgba(160,199,228,.4);border-radius:50%;background:rgba(221,240,255,.6);color:#245e88; }
+  .liquid-focus-plus .icon { display:block;width:21px;height:21px; }
+  .modal-backdrop:has(.site-nav-modal) { background:rgba(32,48,71,.13); -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px); }
+  .site-nav-modal { background:linear-gradient(145deg,rgba(255,255,255,.73),rgba(235,244,255,.52)); -webkit-backdrop-filter:blur(28px) saturate(1.45);backdrop-filter:blur(28px) saturate(1.45);border:1px solid rgba(255,255,255,.86);border-radius:26px;box-shadow:0 18px 60px rgba(26,53,87,.18),inset 0 1px 1px #fff; }
+  .site-nav-modal .modal-head { align-items:center;min-height:44px;background:rgba(245,249,255,.3);border-radius:15px; }
+  .site-nav-modal .modal-head h2 { margin:0; }
+  .site-nav-modal .modal-head button.round-action { display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;min-width:40px;min-height:40px;padding:0;margin:0;box-sizing:border-box;line-height:1;border-radius:50%;background:rgba(255,255,255,.43);border:1px solid rgba(255,255,255,.82);box-shadow:inset 0 1px 1px #fff,0 2px 6px rgba(57,84,117,.08);color:#43536b; }
+  .site-nav-modal .modal-head button.round-action .icon { display:block;width:20px;height:20px;margin:0;padding:0;flex:none;transform:none; }
+  .site-nav-modal .nav-feature { background:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.67);box-shadow:inset 0 1px 1px rgba(255,255,255,.8),0 2px 7px rgba(79,114,153,.04); }
+  .site-nav-modal .nav-feature:active { background:rgba(220,238,255,.48); }
+  .site-nav-modal .nav-resume { background:rgba(219,235,255,.38);border-color:rgba(255,255,255,.75); }
+  .site-nav-modal .nav-record { border-bottom-color:rgba(105,133,164,.15); }
+  .site-nav-modal .nav-footer { background:rgba(244,249,255,.35);border-top-color:rgba(105,133,164,.18);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-radius:0 0 15px 15px; }
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+    .liquid-base { background:rgba(250,251,250,.96); }
+    .site-nav-modal { background:rgba(243,248,254,.96); }
+  }
+  @media (max-width:340px) { .liquid-navigation{width:calc(100vw - 32px)}.liquid-dock{height:58px}.liquid-lens{height:48px}.liquid-plus{width:43px;height:34px}.liquid-tab{font-size:10px}.liquid-tab .icon{width:20px;height:20px} }
+  @media (prefers-reduced-motion:reduce) { .liquid-plus .icon{transition:none} }
+}

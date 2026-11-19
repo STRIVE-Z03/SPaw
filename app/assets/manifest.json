@@ -1,0 +1,286 @@
+{
+  "referenceNote": "Supplied reference pixels retained in PNG crops. SVG wrappers containing an image are not editable vector traces. Lucide icons are editable SVG. Book covers are original illustrations, not publisher covers.",
+  "lucideVersion": "1.61.0",
+  "assets": [
+    {
+      "name": "child-avatar",
+      "type": "reference-raster",
+      "png": "assets/brand/child-avatar.png",
+      "svg": "assets/brand/child-avatar.svg",
+      "reference": 1,
+      "crop": [
+        42,
+        121,
+        211,
+        291
+      ],
+      "width": 169,
+      "height": 170
+    },
+    {
+      "name": "paw-mascot",
+      "type": "reference-raster",
+      "png": "assets/brand/paw-mascot.png",
+      "svg": "assets/brand/paw-mascot.svg",
+      "reference": 1,
+      "crop": [
+        638,
+        1525,
+        922,
+        1781
+      ],
+      "width": 284,
+      "height": 256
+    },
+    {
+      "name": "calendar",
+      "type": "reference-raster",
+      "png": "assets/stickers/calendar.png",
+      "svg": "assets/stickers/calendar.svg",
+      "reference": 1,
+      "crop": [
+        92,
+        382,
+        176,
+        468
+      ],
+      "width": 84,
+      "height": 86
+    },
+    {
+      "name": "math",
+      "type": "reference-raster",
+      "png": "assets/stickers/math.png",
+      "svg": "assets/stickers/math.svg",
+      "reference": 1,
+      "crop": [
+        117,
+        513,
+        225,
+        622
+      ],
+      "width": 108,
+      "height": 109
+    },
+    {
+      "name": "mistake",
+      "type": "reference-raster",
+      "png": "assets/stickers/mistake.png",
+      "svg": "assets/stickers/mistake.svg",
+      "reference": 1,
+      "crop": [
+        117,
+        678,
+        225,
+        785
+      ],
+      "width": 108,
+      "height": 107
+    },
+    {
+      "name": "headphones",
+      "type": "reference-raster",
+      "png": "assets/stickers/headphones.png",
+      "svg": "assets/stickers/headphones.svg",
+      "reference": 1,
+      "crop": [
+        117,
+        839,
+        225,
+        950
+      ],
+      "width": 108,
+      "height": 111
+    },
+    {
+      "name": "camera",
+      "type": "reference-raster",
+      "png": "assets/stickers/camera.png",
+      "svg": "assets/stickers/camera.svg",
+      "reference": 1,
+      "crop": [
+        108,
+        1276,
+        243,
+        1370
+      ],
+      "width": 135,
+      "height": 94
+    },
+    {
+      "name": "check-homework",
+      "type": "reference-raster",
+      "png": "assets/stickers/check-homework.png",
+      "svg": "assets/stickers/check-homework.svg",
+      "reference": 1,
+      "crop": [
+        599,
+        1270,
+        694,
+        1374
+      ],
+      "width": 95,
+      "height": 104
+    },
+    {
+      "name": "star",
+      "type": "reference-raster",
+      "png": "assets/stickers/star.png",
+      "svg": "assets/stickers/star.svg",
+      "reference": 1,
+      "crop": [
+        411,
+        1541,
+        482,
+        1617
+      ],
+      "width": 71,
+      "height": 76
+    },
+    {
+      "name": "sun",
+      "type": "reference-raster",
+      "png": "assets/stickers/sun.png",
+      "svg": "assets/stickers/sun.svg",
+      "reference": 1,
+      "crop": [
+        628,
+        140,
+        704,
+        216
+      ],
+      "width": 76,
+      "height": 76
+    },
+    {
+      "name": "paw-logo",
+      "type": "reference-raster",
+      "png": "assets/brand/paw-logo.png",
+      "svg": "assets/brand/paw-logo.svg",
+      "reference": 2,
+      "crop": [
+        384,
+        72,
+        473,
+        153
+      ],
+      "width": 89,
+      "height": 81
+    },
+    {
+      "name": "cover-math",
+      "type": "original-vector",
+      "svg": "assets/books/math.svg"
+    },
+    {
+      "name": "cover-chinese",
+      "type": "original-vector",
+      "svg": "assets/books/chinese.svg"
+    },
+    {
+      "name": "cover-english",
+      "type": "original-vector",
+      "svg": "assets/books/english.svg"
+    }
+  ],
+  "icons": [
+    "arrow-left",
+    "arrow-right",
+    "arrow-up-right",
+    "chevron-left",
+    "chevron-right",
+    "chevron-down",
+    "chevron-up",
+    "home",
+    "book-open",
+    "library",
+    "camera",
+    "scan-line",
+    "headphones",
+    "mic",
+    "mic-off",
+    "send",
+    "pencil",
+    "settings",
+    "search",
+    "plus",
+    "check",
+    "x",
+    "clock",
+    "calendar-days",
+    "star",
+    "sparkles",
+    "flame",
+    "trophy",
+    "medal",
+    "target",
+    "brain",
+    "lightbulb",
+    "leaf",
+    "globe",
+    "sprout",
+    "atom",
+    "languages",
+    "calculator",
+    "ruler",
+    "shapes",
+    "volume-2",
+    "pause",
+    "play",
+    "rotate-ccw",
+    "bookmark",
+    "bookmark-check",
+    "expand",
+    "shrink",
+    "upload",
+    "image",
+    "file-text",
+    "download",
+    "users",
+    "user-round",
+    "shield-check",
+    "lock",
+    "bell",
+    "chart-no-axes-combined",
+    "chart-column",
+    "calendar-check",
+    "circle-help",
+    "circle-check",
+    "circle-alert",
+    "circle-x",
+    "folder-open",
+    "list",
+    "grid-2x2",
+    "more-horizontal",
+    "menu",
+    "log-out",
+    "repeat",
+    "refresh-cw",
+    "wifi",
+    "battery-full",
+    "signal",
+    "trash-2",
+    "check-check",
+    "panel-left",
+    "eye",
+    "heart",
+    "wand-sparkles",
+    "notebook-pen",
+    "graduation-cap",
+    "messages-square",
+    "link",
+    "external-link",
+    "info",
+    "circle-play",
+    "square-pen",
+    "filter",
+    "sun",
+    "moon",
+    "timer",
+    "apple",
+    "component",
+    "map",
+    "compass",
+    "mountain"
+  ]
+}

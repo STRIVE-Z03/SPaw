@@ -1,0 +1,4 @@
+interface:
+  display_name: "论文写作与长文合稿"
+  short_description: "处理中英文论文起草、润色、证据核对、长文分章节协作和合稿复核"
+  default_prompt: "用 $paper-writing-suite 按章节润色这篇论文，并交付经过证据核对的合并稿。"

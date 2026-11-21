@@ -1,8 +1,5 @@
-# 伴学爪本地开发
+# 伴学爪
 
-运行 ./run-local.sh 后打开 http://127.0.0.1:18768/ 。开发库位于 .local/demo，教材位于 教材。初次可以注册测试学生。
-
-首次检出运行 `python3 app/deployment/install_browser_assets.py`，再在虚拟环境里安装 `app/requirements.txt`。浏览器依赖按版本和校验值恢复。Python 建议使用 3.12。隔离库生成的本机管理员初始密码保存在 .local/demo/admin-bootstrap.txt。
 
 公开仓库提供应用和 OCR 服务源码。OCR 服务需独立配置 PaddleOCR 及对应模型。
 
@@ -20,11 +17,13 @@
 
 真实模型冒烟用 `node tests/smoke_practice_ui.cjs`，需要 Playwright 和 Chromium。使用 `PAW_SMOKE_OFFLINE=1` 可验证本地讲解和图表。可用 `PLAYWRIGHT_PATH` 和 `PAW_SMOKE_CHROME` 指定已有安装。脚本使用独立测试库和模拟学生，截图输出到 `.local/verification/practice-smoke`。
 
-QQ 邮箱验证码发送需要在私有配置中填写 `PAW_SMTP_ADDRESS` 和 `PAW_SMTP_AUTHORIZATION`，再重启应用。授权码由发信邮箱生成。宝宝和家长可共用收件邮箱，各自使用用户名登录和重置密码。未绑定邮箱的旧账号仍可联系管理员恢复。
+公开环境强制通过邮箱验证注册宝宝和家长账号。若 SMTP 缺少配置，页面提示暂停注册。配置私有环境文件中的 `PAW_SMTP_ADDRESS` 和 `PAW_SMTP_AUTHORIZATION` 后重启应用。宝宝和家长可共用收件邮箱，各自使用用户名登录和重置密码。未绑定邮箱的旧账号仍可联系管理员恢复。
+
+独立本机联调可用 `PAW_ALLOW_LOCAL_REGISTRATION=1 ./run-local.sh` 开启测试注册。生产入口默认关闭这一入口。使用 `APP_PUBLIC_URL` 或 `SECURE_COOKIES=1` 时，测试注册开关无效。
 
 管理员可从左侧菜单或手机后台页签进入通知管理。发布前可预览正文和配图。编辑保留各账号的已读状态，删除同步移除已读记录。用户点开单条通知后，铃铛角标才扣减。
 
-运行 .venv/bin/python -m unittest discover -s tests -v 验证。数据库和工具合同见 [数据模型与工具](docs/database-and-tools.md)。
+运行 `.venv/bin/python -m unittest discover -s tests -v` 验证。另见 [数据模型与工具](docs/database-and-tools.md) 和 [智能推荐开发方案](docs/adaptive-recommendation-plan.md)。
 
 ## 教材与练习册整理
 

@@ -95,6 +95,7 @@ class PersonalLearning:
         return {
             "points": report["points"],
             "topics": [{"id": key, "title": value[0]} for key, value in TOPICS.items()],
+            "specialties": self.bank.catalog.points() if self.bank.catalog else [],
             "resume": {"id": resume["id"]} if resume else None,
             "message": "建议会随你的新作答更新。"
             if report["graded"]
@@ -194,22 +195,35 @@ class PersonalLearning:
     def _arena_set(
         self, uid, request_id, style, *, source=None, focus=None, grade=None
     ):
-        cached = self.repository.replay(uid, request_id, source, style)
-        if cached:
-            return self._with_title(cached)
-        topic, items = self.bank.draw(
-            self._report(uid), style == "arena-paper", focus, grade
-        )
-        return self._with_title(
-            self.repository.create(
-                uid, request_id, topic, items, int(self.clock()), source, style
+        if type(grade) is not int or not 1 <= grade <= 6:
+            raise ValueError("请先选择年级")
+        specialty = style == "arena-specialty"
+        if specialty and (not isinstance(focus, str) or not focus or len(focus) > 80):
+            raise ValueError("请选择专项知识点")
+        result = self.repository.replay(uid, request_id, source, style)
+        if result is None:
+            topic, items, target_count = self.bank.draw(
+                self._report(uid), style == "arena-paper", focus, grade, specialty=specialty
             )
-        )
+            if specialty and (topic != focus or any(item[2]["pointId"] != focus for item in items)):
+                raise ValueError("专项题单的知识点不一致，请重新开始")
+            result = self.repository.create(
+                uid, request_id, topic, items, int(self.clock()), source, style,
+                target_count=target_count,
+            )
+        if any(question.get("grade") != grade for question in result["questions"]):
+            raise ValueError("请求编号已用于其他年级，请重新组题")
+        if specialty and (result["topicId"] != focus or any(q.get("pointId") != focus for q in result["questions"])):
+            raise ValueError("请求编号已用于其他专项，请重新组题")
+        return self._with_title(result)
 
     def create_set(self, uid, topic_id, request_id, style=None, grade=None):
         self._request_key(request_id)
-        if style in ("arena", "arena-paper"):
-            return self._arena_set(uid, request_id, style, focus=topic_id, grade=grade)
+        if style in ("arena", "arena-paper", "arena-specialty"):
+            if topic_id is not None and not isinstance(topic_id, str):
+                raise ValueError("知识点编号不正确")
+            focus = None if topic_id in (None, "adaptive") else topic_id
+            return self._arena_set(uid, request_id, "arena-specialty" if focus else style, focus=focus, grade=grade)
         self._topic(topic_id)
         if style not in (None, "guided", "paper"):
             raise ValueError("练习形式不正确")
@@ -222,7 +236,7 @@ class PersonalLearning:
             self.repository.create(uid, request_id, topic_id, items, int(self.clock()))
         )
 
-    def next_set(self, uid, source_id, request_id):
+    def next_set(self, uid, source_id, request_id, grade=None):
         self._request_key(request_id)
         if not isinstance(source_id, str) or not re.fullmatch(
             r"[a-f0-9]{32}", source_id
@@ -231,13 +245,15 @@ class PersonalLearning:
         prior = self.repository.get(uid, source_id)
         if len(prior["attempts"]) != len(prior["questions"]):
             raise ValueError("做完这组后再调整下一组")
-        if prior["style"] in ("arena", "arena-paper"):
+        if prior["style"] in ("arena", "arena-paper", "arena-specialty"):
+            specialty = prior["style"] == "arena-specialty"
             return self._arena_set(
                 uid,
                 request_id,
                 prior["style"],
                 source=source_id,
-                grade=prior["questions"][0].get("grade"),
+                focus=prior["topicId"] if specialty else None,
+                grade=grade if grade is not None else prior["questions"][0].get("grade"),
             )
         misses = defaultdict(int)
         for question in prior["questions"]:

@@ -68,6 +68,11 @@ class PracticeRepository:
                     "ALTER TABLE practice_attempts ADD COLUMN elapsed_seconds INTEGER"
                 )
                 conn.execute("INSERT INTO learning_migrations VALUES (4)")
+            if 5 not in versions:
+                conn.execute(
+                    "ALTER TABLE practice_sets ADD COLUMN target_count INTEGER CHECK(target_count > 0)"
+                )
+                conn.execute("INSERT INTO learning_migrations VALUES (5)")
 
     @staticmethod
     def _import_previous_schema(conn):
@@ -150,6 +155,7 @@ class PracticeRepository:
             "topicId": row["topic_id"],
             "sourceSetId": row["source_set_id"],
             "style": row["style"],
+            "targetCount": row["target_count"],
             "questions": questions,
             "reviews": reviews,
             "attempts": {
@@ -192,6 +198,7 @@ class PracticeRepository:
         now,
         source_set_id=None,
         style="",
+        target_count=None,
     ):
         with self.db() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -213,8 +220,10 @@ class PracticeRepository:
                 return view
             identity = uuid.uuid4().hex
             conn.execute(
-                "INSERT INTO practice_sets(id,student_id,request_id,topic_id,created_at,source_set_id,style) VALUES (?,?,?,?,?,?,?)",
-                (identity, student, request_id, topic_id, now, source_set_id, style),
+                """INSERT INTO practice_sets
+                   (id,student_id,request_id,topic_id,created_at,source_set_id,style,target_count)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (identity, student, request_id, topic_id, now, source_set_id, style, target_count),
             )
             conn.executemany(
                 "INSERT INTO practice_items(set_id,id,position,stem,expected_answer,details) VALUES (?,?,?,?,?,?)",

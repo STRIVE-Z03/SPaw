@@ -14,14 +14,18 @@
   const answerStarts = new Map();
   const practiceEvents = typeof BroadcastChannel === "function" ? new BroadcastChannel("paw-learning") : null;
   const labels = {basic:"基础", medium:"进阶", advanced:"挑战", unclassified:"未分级"};
+  const kinds = {choice: "选择题", written: "分步大题", calculation: "计算题", fill: "填空题"};
   const pointStatus = {"needs-practice":"再练练", mastered:"已掌握", observed:"继续练", insufficient:"再做几道"};
   const escape = (value) => app.esc(value);
   const token = () => crypto.randomUUID();
   const practiceRequests = new Map();
   const answerDrafts = new Map();
   const scratchDrafts = new Map();
+  const expandedScratch = new Set();
+  const scratchRows = {compact: 3, expanded: 7};
+  const questionScroll = new Map();
   let shownQuestion = "", assistOpen = false, dragging, dockClickAfter = 0;
-  let dockSide = "right", dockHeight = 58;
+  let dockSide = "right";
   const mascot = 'assets/brand/paw-mascot.png';
   const qualified = () => owner && String(app.user()?.id || "") === owner;
 
@@ -40,13 +44,13 @@
     practiceRequests.clear();
     answerDrafts.clear();
     scratchDrafts.clear();
+    expandedScratch.clear();
+    questionScroll.clear();
     shownQuestion = "";
     assistOpen = false;
     dockSide = "right";
-    dockHeight = 58;
     try {
       dockSide = localStorage.getItem(`bx-practice-dock:${owner}:side`) === "left" ? "left" : "right";
-      dockHeight = Number(localStorage.getItem(`bx-practice-dock:${owner}:height`)) || 58;
     } catch {}
   }
   function repaint() {
@@ -131,6 +135,15 @@
     if (!dashboard?.books.length)
       return "<p>还没有可用教材；你仍可以学习和练习。</p>";
     return `<label class="personal-book">我的教材 <select id="personal-book">${dashboard.books.map((book) => `<option value="${escape(book.id)}" ${book.id === selectedBook ? "selected" : ""}>${escape(book.title)}</option>`).join("")}</select></label>`;
+  }
+  function specialtyTopics() {
+    const grade = Number(app.grade?.());
+    const points = (dashboard.specialties || []).filter(point => point.grade === grade);
+    if (!points.length) return "";
+    const subjects = {math: "数学", chinese: "语文", english: "英语"};
+    return `<section class="personal-card"><h2>专项练习</h2><div class="personal-topics">${points.map(point =>
+      `<button data-personal-practice="${escape(point.id)}" data-practice-style="arena-specialty"><strong>${escape(point.name)}</strong><span>${subjects[point.subject]} · 开始练习 →</span></button>`
+    ).join("")}</div></section>`;
   }
   async function loadLesson(topic) {
     if (pending) return;
@@ -232,7 +245,8 @@
 
   function answerFields(question, saved, answered) {
     if (question.kind === "choice") {
-      return `<fieldset class="practice-options" aria-label="选择一个答案" ${answered ? "disabled" : ""}>${question.options.map((option, index) => {
+      const longOptions = question.options.some(option => option.length > 14 || option.includes("\n"));
+      return `<fieldset class="practice-options${longOptions ? " practice-options-wide" : ""}" aria-label="选择一个答案" ${answered ? "disabled" : ""}>${question.options.map((option, index) => {
         const label = question.optionIds?.[index] || "ABCD"[index];
         const value = question.optionIds ? label : option;
         return `<label class="practice-option"><input type="radio" name="answer" value="${escape(value)}" ${saved?.[0] === value ? "checked" : ""} required>
@@ -240,7 +254,7 @@
       }).join("")}</fieldset>`;
     }
     const steps = question.steps || ["填写答案"];
-    return `<fieldset class="practice-steps" ${answered ? "disabled" : ""}>${steps.map((step, index) => `<label>
+    return `<fieldset class="practice-steps" ${answered ? "disabled" : ""}>${steps.map((step, index) => `<label class="${step.length > 20 || step.includes("\n") ? "practice-step-wide" : ""}">
       <span>${question.kind === "written" ? `${index + 1}. ` : ""}${escape(step)}</span>
       <input name="answer" inputmode="decimal" maxlength="24" required value="${escape(saved?.[index] || "")}" aria-label="${escape(step)}">
     </label>`).join("")}</fieldset>`;
@@ -257,7 +271,7 @@
 
   function assistantMarkup(question) {
     if (!assistOpen) {
-      return `<button type="button" id="practice-dock" class="practice-dock dock-${dockSide}" data-practice-dock aria-label="打开问爪爪" aria-haspopup="dialog" style="--dock-height:${dockHeight}dvh"><img src="${mascot}" alt=""><span>问爪爪</span></button>`;
+      return `<button type="button" id="practice-dock" class="practice-dock" data-practice-dock aria-label="打开问爪爪" aria-haspopup="dialog"><img src="${mascot}" alt=""><span>问爪爪</span></button>`;
     }
     const raw = practiceContext(question);
     queueMicrotask(() => {
@@ -266,6 +280,11 @@
     });
     return `<dialog id="practice-assistant" class="practice-assistant dock-${dockSide}" aria-labelledby="practice-assistant-title">
       <header><img src="${mascot}" alt=""><h3 id="practice-assistant-title">问爪爪</h3><button type="button" data-practice-dock aria-label="关闭问爪爪">×</button></header>
+      <div class="practice-help">
+        <button type="button" data-practice-ask="看我的作答和草稿，提示我下一步">提示</button>
+        <button type="button" data-practice-ask="讲个同类例子">例题</button>
+        <button type="button" data-practice-ask="哪里能在教材里找到这个知识点">教材</button>
+      </div>
       <div id="practice-conversation" data-set="${escape(raw.practiceSetId)}" data-item="${escape(raw.practiceItemId)}" data-book="${escape(raw.bookId)}">${window.BX_STUDY?.practicePanel(raw) || ""}</div>
     </dialog>`;
   }
@@ -280,46 +299,61 @@
     if (practice?.id !== id && !pending && !problem)
       queueMicrotask(() => loadPractice(id));
     if (!practice || practice.id !== id) return "<p>正在打开练习…</p>";
+    const total = practice.questions.length;
+    const specialty = practice.style === "arena-specialty";
+    const notice = !specialty && practice.targetCount > total
+      ? `<p class="practice-plan" role="status">同年级题库暂不足，计划 ${escape(practice.targetCount)} 道，本组安排 ${total} 道。</p>`
+      : "";
     const question = activeQuestion();
     if (!question) {
       const correct = Object.values(practice.attempts).filter(Boolean).length;
-      return `<section class="personal-card practice-complete"><h2>练习完成</h2><p>做对 ${correct} / ${practice.questions.length} 道。</p>
-        <button type="button" class="primary" data-personal-next="${escape(practice.id)}">按薄弱点组下一组</button>
+      return `<section class="personal-card practice-complete"><h2>练习完成</h2><p>做对 ${correct} / ${total} 道。</p>${notice}
+        <button type="button" class="primary" data-personal-next="${escape(practice.id)}">${specialty ? "继续本专项" : "按薄弱点组下一组"}</button>
         <button type="button" class="text-action" data-go="learn/analysis">看分析</button>
         <button type="button" class="text-action" data-practice-move="${practice.questions.at(-1).id}">回看答题</button></section>`;
     }
-    const index = practice.questions.indexOf(question), total = practice.questions.length;
+    const index = practice.questions.indexOf(question);
     const answered = question.id in practice.attempts;
     if (!answered && !answerStarts.has(question.id)) answerStarts.set(question.id, performance.now());
     const review = practice.reviews?.[question.id];
     const saved = review ? [].concat(review.answer) : answerDrafts.get(question.id);
     const scratch = scratchDrafts.get(question.id) || "";
+    const scratchOpen = expandedScratch.has(question.id);
+    const previous = practice.questions[index - 1]?.id;
     const next = index + 1 === total ? "done" : practice.questions[index + 1].id;
     const topic = question.pointTitle || dashboard.topics.find(item => item.id === question.topicId)?.title || practice.title;
-    const heading = practice.style === "arena-paper" || !practice.style && total === 10 ? "智能组卷" :
+    const heading = specialty ? `${practice.title}专项练习` : practice.style === "arena-paper" || !practice.style && total === 10 ? "智能组卷" :
       practice.style === "arena" ? "智能组题" : `${practice.title}小练习`;
+    if (questionScroll.get(question.id)) queueMicrotask(() => {
+      const card = document.querySelector(".practice-main");
+      if (card?.dataset.question === question.id) card.scrollTop = questionScroll.get(question.id);
+    });
     return `<div class="paw-workbench">
-      <section class="practice-main personal-card"><div class="practice-heading"><h2>${escape(heading)}</h2><span>第 ${index + 1} / ${total} 题</span></div>
-      ${practice.sourceSetId && index === 0 && practice.title !== "竞技场" ? `<p class="practice-plan">本组重点练${escape(practice.title)}。</p>` : ""}
-      <span class="practice-kind">${escape(topic)} · ${question.kind === "choice" ? "选择题" : question.kind === "written" ? "分步大题" : "填答题"}${question.originId ? ` · ${question.grade ? `${escape(question.grade)} 年级 · ` : ""}${labels[question.difficulty]}` : ""}</span>
+      <div class="practice-main" data-question="${escape(question.id)}"><section class="practice-sheet personal-card"><header class="practice-header"><div class="practice-heading"><h2 tabindex="-1">${escape(heading)}</h2><span>第 ${index + 1} / ${total} 题</span></div>
+      <progress class="practice-progress" value="${index + 1}" max="${total}" aria-hidden="true"></progress></header>${notice}
+      ${!specialty && practice.sourceSetId && index === 0 && practice.title !== "竞技场" ? `<p class="practice-plan">本组重点练${escape(practice.title)}。</p>` : ""}
+      <span class="practice-kind">${specialty ? "" : `${escape(topic)} · `}${kinds[question.sourceKind || question.kind] || "填答题"}${question.originId ? ` · ${question.grade ? `${escape(question.grade)} 年级 · ` : ""}${labels[question.difficulty]}` : ""}</span>
       <p class="personal-question">${escape(question.stem)}</p>
       ${(question.images || []).map((src, i) => `<a class="practice-source-figure" href="${escape(src)}" target="_blank" rel="noopener"><img src="${escape(src)}" alt="${i ? "原题补充图" : "竞技场原题图"}"></a>`).join("")}
-      <form id="personal-answer-form" data-item="${question.id}">${answerFields(question, saved, answered)}
-        ${question.kind === "written" ? `<details class="practice-scratch" ${scratch ? "open" : ""}><summary>写草稿</summary><textarea name="scratch" rows="2" maxlength="600" aria-label="算式或解题草稿" placeholder="写下你的算式或想法">${escape(scratch)}</textarea></details>` : ""}
-        <div class="practice-controls">
-          ${index ? `<button type="button" class="secondary" data-practice-move="${practice.questions[index - 1].id}">上一题</button>` : ""}
-          ${answered ? `<button type="button" class="primary" data-practice-move="${next}">${next === "done" ? "查看结果" : "下一题"}</button>` : `<button class="primary" type="submit" ${pending ? "disabled" : ""}>提交</button>`}
-        </div>
-      </form>
+      <form id="personal-answer-form" data-item="${question.id}">${answerFields(question, saved, answered)}</form>
       ${reviewMarkup(question, answered, review)}
       ${answered && question.originId ? `<a class="practice-source-link" href="#/arena/question/${escape(question.originId)}">竞技场原题 ↗</a>` : ""}
       ${practice.feedback && !question.kind ? `<p role="status">${escape(practice.feedback)}</p>` : ""}
-      <div class="practice-help"><img src="${mascot}" alt=""><span>问爪爪</span>
-        <button type="button" data-practice-ask="看我的作答和草稿，提示我下一步">给个提示</button>
-        <button type="button" data-practice-ask="讲个同类例子">讲个例子</button>
-        <button type="button" data-practice-ask="哪里能在教材里找到这个知识点">看教材</button>
+      </section></div>
+      <div class="practice-bottom">
+        <div class="practice-tools dock-${dockSide}">${assistantMarkup(question)}</div>
+        <div class="practice-action-panel">
+        ${question.kind && (!answered || scratch) ? `<div class="practice-scratch"><div class="practice-scratch-heading">
+          <label for="practice-scratch-input">草稿</label><small id="practice-scratch-purpose">问爪爪时一并发送</small>
+          <button type="button" form="personal-answer-form" data-practice-scratch-toggle aria-controls="practice-scratch-input" aria-expanded="${scratchOpen}">${scratchOpen ? "收起" : "展开"}</button>
+          </div><textarea id="practice-scratch-input" form="personal-answer-form" name="scratch" aria-describedby="practice-scratch-purpose" rows="${scratchOpen ? scratchRows.expanded : scratchRows.compact}" maxlength="600" placeholder="写下算式或想法">${escape(scratch)}</textarea></div>` : ""}
+        <footer class="practice-footer practice-controls" role="group" aria-label="答题操作">
+          <button type="button" class="secondary" data-practice-move="${previous || ""}" ${!previous || pending ? "disabled" : ""}>上一题</button>
+          <button type="button" class="${answered ? "primary" : "secondary"}" data-practice-move="${next}" ${!answered || pending ? "disabled" : ""}>${answered && next === "done" ? "查看结果" : "下一题"}</button>
+          <button type="submit" form="personal-answer-form" name="submit-practice" class="${answered ? "secondary" : "primary"}" ${answered || pending ? "disabled" : ""}>${answered ? "已提交" : "提交"}</button>
+        </footer>
+        </div>
       </div>
-      </section>${assistantMarkup(question)}
     </div>`;
   }
 
@@ -407,7 +441,7 @@
     if (topic === "practice" && route[2]) content = practicePage(route[2]);
     else if (topic === "analysis") content = analysisPage();
     else if (!topic)
-      content = `<h1>一起学</h1><p>${escape(dashboard.message)}</p>${bookPicker()}<div class="personal-topics">${dashboard.topics.map((item) => `<button data-go="learn/${item.id}"><strong>${escape(item.title)}</strong><span>看看例子 →</span></button>`).join("")}</div>`;
+      content = `<h1>一起学</h1><p>${escape(dashboard.message)}</p>${bookPicker()}${specialtyTopics()}<div class="personal-topics">${dashboard.topics.map((item) => `<button data-go="learn/${item.id}"><strong>${escape(item.title)}</strong><span>看看例子 →</span></button>`).join("")}</div>`;
     else {
       const key = topic + ":" + selectedBook;
       if (lesson?.key !== key && !pending && !problem)
@@ -440,6 +474,17 @@
       loadRecords(recordFilter, Number(button.dataset.analysisMore));
       return;
     }
+    if (button.hasAttribute("data-practice-scratch-toggle")) {
+      const identity = button.form.dataset.item;
+      const textarea = button.form.elements.scratch;
+      const open = !expandedScratch.has(identity);
+      if (open) expandedScratch.add(identity);
+      else expandedScratch.delete(identity);
+      textarea.rows = open ? scratchRows.expanded : scratchRows.compact;
+      button.setAttribute("aria-expanded", String(open));
+      button.textContent = open ? "收起" : "展开";
+      return;
+    }
     if (button.hasAttribute("data-practice-dock")) {
       if (performance.now() >= dockClickAfter) toggleAssist();
       return;
@@ -456,6 +501,7 @@
       shownQuestion = button.dataset.practiceMove === "done" ? "" : button.dataset.practiceMove;
       problem = "";
       repaint();
+      document.querySelector(".practice-heading h2")?.focus({preventScroll: true});
       return;
     }
     if ("personalRetry" in button.dataset) {
@@ -484,14 +530,15 @@
     if (button.dataset.personalPractice || button.dataset.personalNext) {
       if (pending) return;
       const { personalPractice: topicId, personalNext: setId, practiceStyle: style = "guided" } = button.dataset;
-      const requestKey = setId ? `next:${setId}` : `${style}:${topicId}`;
+      const grade = app.grade?.();
+      const requestKey = setId ? `next:${setId}:${grade}` : `${style}:${topicId}:${grade}`;
       const requestId = practiceRequests.get(requestKey) || token();
       const expected = owner;
       practiceRequests.set(requestKey, requestId);
       pending = "create";
       button.disabled = true;
       app.api(setId ? "/api/learning/next-practice" : "/api/learning/practice",
-        setId ? {setId, requestId} : {topicId, style, requestId, grade: app.grade?.()})
+        setId ? {setId, requestId, grade} : {topicId, style, requestId, grade})
         .then(value => {
           if (owner !== expected || !qualified()) return;
           practiceRequests.delete(requestKey);
@@ -500,6 +547,9 @@
           assistOpen = false;
           dashboardDirty = true;
           app.go("learn/practice/" + value.id);
+          if (value.style === "arena-specialty" && value.questions.length < value.targetCount) {
+            app.toast(`这组有 ${value.questions.length} 道题可练。`);
+          }
         })
         .catch(error => { if (owner === expected) problem = error.message; })
         .finally(() => {
@@ -558,37 +608,40 @@
     if (!dock || event.button !== 0) return;
     dock.setPointerCapture(event.pointerId);
     const rect = dock.getBoundingClientRect();
-    dragging = { id:event.pointerId, dock, x:event.clientX, y:event.clientY, width:rect.width, offset:event.clientX-rect.x, moved:false };
+    const rail = dock.parentElement.getBoundingClientRect();
+    dragging = { id:event.pointerId, dock, x:event.clientX, rail, rect, moved:false };
   });
   document.addEventListener("pointermove", event => {
     if (dragging?.id !== event.pointerId) return;
-    if (Math.hypot(event.clientX - dragging.x, event.clientY - dragging.y) < 7 && !dragging.moved) return;
+    const distance = event.clientX - dragging.x;
+    if (Math.abs(distance) < 7 && !dragging.moved) return;
     dragging.moved = true;
-    const dock = dragging.dock;
+    const {dock, rail, rect} = dragging;
     dock.classList.add("is-dragging");
-    dock.style.setProperty("--drag-x", `${Math.max(4, Math.min(innerWidth - dragging.width - 4, event.clientX - dragging.offset))}px`);
-    dock.style.setProperty("--dock-height", `${Math.max(64, Math.min(innerHeight - 122, event.clientY - 18))}px`);
+    dock.style.setProperty("--drag-x", `${Math.max(rail.left - rect.left, Math.min(rail.right - rect.right, distance))}px`);
   });
   function releaseDock(event) {
     if (dragging?.id !== event.pointerId) return;
-    const moved = dragging.moved;
+    const {moved, rail} = dragging;
     dragging = null;
     if (!moved) return;
     if (event.type === "pointercancel") {
       repaint();
       return;
     }
-    dockSide = event.clientX < innerWidth / 2 ? "left" : "right";
-    dockHeight = Math.max(12, Math.min(83, (event.clientY - 18) * 100 / innerHeight));
+    dockSide = event.clientX < rail.left + rail.width / 2 ? "left" : "right";
     dockClickAfter = performance.now() + 260;
     try {
       localStorage.setItem(`bx-practice-dock:${owner}:side`, dockSide);
-      localStorage.setItem(`bx-practice-dock:${owner}:height`, String(dockHeight));
     } catch {}
     repaint();
   }
   document.addEventListener("pointerup", releaseDock);
   document.addEventListener("pointercancel", releaseDock);
+  document.addEventListener("scroll", event => {
+    const card = event.target;
+    if (card.matches?.(".practice-main")) questionScroll.set(card.dataset.question, card.scrollTop);
+  }, true);
   document.addEventListener("input", event => {
     const form = event.target.form;
     if (form?.id !== "personal-answer-form") return;
@@ -606,7 +659,7 @@
     const answer = question.kind === "written" ? answers : answers[0];
     pending = "answer";
     problem = "";
-    form.querySelector('button[type="submit"]').disabled = true;
+    form.elements.namedItem("submit-practice").disabled = true;
     const elapsed = Math.min(3600, Math.max(0, Math.floor((performance.now() - answerStarts.get(question.id)) / 1000)));
     app.api("/api/learning/attempts", {setId:set.id, questionId:question.id, answer, elapsed})
       .then(result => {
@@ -629,6 +682,9 @@
         if (owner === expected) {
           pending = "";
           repaint();
+          if (practice === set && activeQuestion()?.id === question.id && set.reviews?.[question.id]) queueMicrotask(() => {
+            document.querySelector(".practice-review")?.scrollIntoView({block: "nearest"});
+          });
         }
       });
   });

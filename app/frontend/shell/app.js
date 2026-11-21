@@ -3315,6 +3315,7 @@
       const auth = await api("/api/auth/status");
       user = auth.user;
       ui.emailAvailable = !!auth.emailAvailable;
+      ui.registrationMode = auth.registrationMode || (ui.emailAvailable ? "email" : "paused");
       if (!user) {
         renderAuth();
         return;
@@ -3430,7 +3431,7 @@
     const emailModes = { "email-register":"register", "email-register-parent":"register-parent", "email-reset":"reset" };
     if (emailModes[mode] && window.BX_EMAIL_AUTH) {
       document.title = "邮箱验证 · 伴学爪";
-      $("#app").innerHTML = window.BX_EMAIL_AUTH.page(emailModes[mode], emailModes[mode] === "reset" ? ui.authUsername || "" : "", ui.emailAvailable);
+      $("#app").innerHTML = window.BX_EMAIL_AUTH.page(emailModes[mode], emailModes[mode] === "reset" ? ui.authUsername || "" : "", ui.emailAvailable, ui.registrationMode);
       window.BX_EMAIL_AUTH.mount();
       return;
     }
@@ -3556,7 +3557,8 @@
     const run = async () => {
       if (d.authMode) {
         if (ui.authBusy) return;
-        ui.authMode = d.authMode;
+        ui.authMode = d.authMode === "register" && ui.registrationMode !== "local"
+          ? "email-register" : d.authMode;
         setAuthMessage("");
         ui.captcha = null;
         renderAuth();
@@ -3971,6 +3973,10 @@
     }
   });
   function familyForm(mode) {
+    if (mode === "register" && ui.registrationMode === "paused") {
+      modal("注册已暂停", '<p class="muted">邮件服务暂未配置，请联系管理员。</p>');
+      return;
+    }
     if (mode === "register" && ui.emailAvailable && window.BX_EMAIL_AUTH) {
       modal("注册并绑定家长账号", window.BX_EMAIL_AUTH.fields("family"));
       window.BX_EMAIL_AUTH.mount();

@@ -20,6 +20,11 @@ EMAIL_PATTERN = re.compile(
 )
 
 
+class RegistrationUnavailable(ValueError):
+    def __init__(self):
+        super().__init__("邮件服务暂未配置，注册已暂停。请联系管理员。")
+
+
 def normalize_email(value):
     if not isinstance(value, str):
         raise ValueError("请填写有效的邮箱地址")
@@ -113,9 +118,11 @@ class EmailVerification:
         )
 
     def send(self, body, actor, ip):
-        if not self.mailer.enabled:
-            raise ValueError("邮件服务暂未开启，请联系管理员")
         action, key, _ = self._inputs(body, actor)
+        if not self.mailer.enabled:
+            if action != "reset":
+                raise RegistrationUnavailable()
+            raise ValueError("邮件服务暂未开启，请联系管理员")
         self.accounts.verify(body)
         now = int(self.clock())
         code = f"{secrets.randbelow(1_000_000):06d}"
@@ -199,6 +206,8 @@ class EmailVerification:
 
     def complete(self, body, actor):
         action, key, username = self._inputs(body, actor)
+        if action != "reset" and not self.mailer.enabled:
+            raise RegistrationUnavailable()
         code = body.get("emailCode", "")
         if not isinstance(code, str) or not re.fullmatch(r"[0-9]{6}", code.strip()):
             raise ValueError("请输入邮件里的 6 位数字验证码")

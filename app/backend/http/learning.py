@@ -72,7 +72,7 @@ class LearningRoutes:
             ), 200
         if path == "/api/learning/next-practice":
             return self.service.next_set(
-                uid, body.get("setId"), body.get("requestId")
+                uid, body.get("setId"), body.get("requestId"), body.get("grade")
             ), 200
         if path == "/api/learning/attempts":
             return self.service.submit(

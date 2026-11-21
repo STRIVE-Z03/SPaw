@@ -3,6 +3,9 @@
 import json
 import logging
 import re
+from zipfile import BadZipFile
+
+from pypdfium2 import PdfiumError
 
 from backend.agent.practice_coach import submitted_steps
 from backend.agent.teaching_tools import TEXTBOOK_TOOL
@@ -104,10 +107,13 @@ class TutorAgent:
         point = details.get("pointTitle")
         references = []
         if book_id:
-            if point:
-                references = self.tools.textbook_search.search(book_id, terms=(point,))
-            else:
-                references = self.lesson_sources(book_id, (topic,))
+            try:
+                if point:
+                    references = self.tools.textbook_search.search(book_id, terms=(point,))
+                else:
+                    references = self.lesson_sources(book_id, (topic,))
+            except (OSError, ValueError, KeyError, BadZipFile, PdfiumError):
+                LOG.info("Practice textbook lookup unavailable")
         example = re.search(r"例子|例题|举例|类似", prompt)
         lookup = LOOKUP.search(prompt)
         result = explain(references) if explain and not (example or lookup) else None

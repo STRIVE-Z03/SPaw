@@ -32,7 +32,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / ".local" / "python"))
 import pypdfium2 as pdfium
 from PIL import Image, ImageOps
 from backend.identity.accounts import Accounts
-from backend.identity.email_verification import EmailVerification, verification_secret
+from backend.identity.email_verification import (
+    EmailVerification,
+    RegistrationUnavailable,
+    verification_secret,
+)
 from backend.identity.mail import QQMailer
 from backend.learning.notifications import Notifications
 from backend.materials.page_cleanup import mask_image, analyze
@@ -70,6 +74,7 @@ from backend.storage.environment import Environment, PROVIDER_CONFIG
 from backend.http.static import find_public_file
 from backend.http.learning import LearningRoutes
 from backend.storage.learning import PracticeRepository
+from backend.storage.question_catalog import QuestionCatalog
 from backend.agent.teaching_tools import TextbookSearch, TavilySearch, TeachingTools
 from backend.agent.tutor import TutorAgent
 from backend.agent.practice_coach import practice_work, request_messages, render_model_reply
@@ -170,7 +175,7 @@ ARENA_WORK = ArenaWork(db)
 ARENA_WORK.reference_source = lambda identity: ARENA.question_fingerprint(identity)
 GENERATED = GeneratedPractice(db)
 ARENA.generated = GENERATED
-ARENA_BANK = ArenaPracticeBank(ARENA, ARENA_WORK)
+ARENA_BANK = ArenaPracticeBank(ARENA, ARENA_WORK, catalog=QuestionCatalog(db))
 MATERIAL_CHANGES = read_manifest(ROOT)
 apply_database_migration(db, MATERIAL_CHANGES)
 
@@ -191,6 +196,26 @@ EMAIL = EmailVerification(
     db, ACCOUNTS, MAILER, verification_secret(PRIVATE / "email-code.key")
 )
 NOTIFICATIONS = Notifications(db)
+
+
+def registration_mode():
+    if MAILER.enabled:
+        return "email"
+    if (
+        os.environ.get("PAW_ALLOW_LOCAL_REGISTRATION") == "1"
+        and not PUBLIC_URL
+        and os.environ.get("SECURE_COOKIES") != "1"
+    ):
+        return "local"
+    return "paused"
+
+
+def require_local_registration():
+    mode = registration_mode()
+    if mode == "paused":
+        raise RegistrationUnavailable()
+    if mode == "email":
+        raise ValueError("请先通过邮箱验证再注册账号")
 
 
 def load_value(key, fallback=None):
@@ -1270,7 +1295,10 @@ def study_context(actor, kind, raw):
         context["grade"] = details.get("grade") or context["grade"]
         book_id = raw.get("bookId")
         if book_id:
-            book = LIBRARY.get(str(book_id))
+            try:
+                book = LIBRARY.get(str(book_id))
+            except ValueError:
+                return context
             if book["kind"] != "textbook":
                 raise ValueError("请选择对应的教材")
             if book["subject"] == details.get("subject", "math"):
@@ -2391,7 +2419,11 @@ class Handler(BaseHTTPRequestHandler):
             self.current_user = ACCOUNTS.user(self.headers.get("Cookie"))
             if path == "/api/auth/status":
                 return self.send_data(
-                    dict(user=self.current_user, emailAvailable=MAILER.enabled)
+                    dict(
+                        user=self.current_user,
+                        emailAvailable=MAILER.enabled,
+                        registrationMode=registration_mode(),
+                    )
                 )
             if path == "/api/captcha":
                 return self.send_data(ACCOUNTS.challenge())
@@ -3050,8 +3082,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/auth/email-complete":
                 return self.send_data(EMAIL.complete(body, self.current_user))
             if path == "/api/auth/register":
-                if MAILER.enabled:
-                    raise ValueError("请先通过邮箱验证再注册账号")
+                require_local_registration()
                 ACCOUNTS.verify(body)
                 uid = ACCOUNTS.create(
                     body.get("username"), body.get("child_name"), body.get("password")
@@ -3402,8 +3433,7 @@ class Handler(BaseHTTPRequestHandler):
                 identity = save_scan_image(self.current_user["id"], body.get("image"))
                 return self.send_data(dict(imageId=identity))
             if path == "/api/family/register-parent":
-                if MAILER.enabled:
-                    raise ValueError("请先通过邮箱验证再注册账号")
+                require_local_registration()
                 return self.send_data(ACCOUNTS.register_parent(self.current_user, body))
             if path == "/api/family/bind-parent":
                 return self.send_data(ACCOUNTS.bind_parent(self.current_user, body))
@@ -3965,6 +3995,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_data({"error": "接口不存在"}, status=404)
         except PermissionError as error:
             return self.send_data({"error": str(error)}, status=403)
+        except RegistrationUnavailable as error:
+            return self.send_data({"error": str(error)}, status=503)
         except (ValueError, TypeError, KeyError, json.JSONDecodeError) as error:
             return self.send_data({"error": str(error)[:300]}, status=400)
         except (urllib.error.URLError, TimeoutError, OSError):

@@ -799,6 +799,7 @@ def main(argv=None):
     parser.add_argument("--inventory", type=Path)
     parser.add_argument("--state", type=Path)
     parser.add_argument("--stop-file", type=Path)
+    parser.add_argument("--question-scope", type=Path, help="Classify reviewed questions after generation.")
     parser.add_argument("--attempts-per-chapter", type=int, choices=(1, 2), default=2)
     parser.add_argument(
         "--run",
@@ -824,6 +825,12 @@ def main(argv=None):
             else None
         )
         runtime = importlib.import_module("server")
+        intake = None
+        if args.run and args.question_scope:
+            from deployment.question_catalog import make_intake, read_json
+
+            intake = make_intake(runtime)
+            scopes = intake.register(read_json(args.question_scope))
         result = run_batch(
             server=runtime,
             state_path=args.state or private / "chapter-batch-state.json",
@@ -847,10 +854,16 @@ def main(argv=None):
                 "rejected",
             )
         }
+        if intake and result["status"] != "stopped":
+            summary["questionClassification"] = intake.classify(scopes)
         print(canonical(summary), flush=True)
         return (
             0
-            if not args.run or result["remainingCount"] == 0 and not result["rejected"]
+            if not args.run or (
+                result["remainingCount"] == 0
+                and not result["rejected"]
+                and not summary.get("questionClassification", {}).get("unavailable")
+            )
             else 2
         )
     except BatchBusy:

@@ -35,18 +35,19 @@
     ].join("");
   }
 
-  function page(purpose, username, available) {
+  function page(purpose, username, available, registrationMode) {
     return [
       '<main class="auth-page"><section class="auth-welcome"><img src="assets/brand/paw-mascot.png" alt="爪爪"><h1>伴学爪</h1></section>',
       '<section class="auth-card"><div class="auth-brand"><img src="assets/brand/paw-logo.png" alt=""><strong>伴学爪</strong></div><h1>',
       labels[purpose][0], '</h1>',
-      available ? '' : '<p class="email-help">本机尚未开启邮件服务。</p>',
-      fields(purpose, username),
+      available ? fields(purpose, username) :
+        '<p class="email-help" role="status">' + (purpose === "reset" ? "邮件服务暂未开启，请联系管理员。" :
+          registrationMode === "local" ? "本机未开启邮件服务。" : "邮件服务暂未配置，注册已暂停。请联系管理员。") + '</p>',
       '<div class="auth-links"><button data-auth-mode="login">返回登录</button>',
       purpose === "register" ? '<button data-auth-mode="email-register-parent">注册家长账号</button>' : '',
       purpose === "register-parent" ? '<button data-auth-mode="email-register">注册宝宝账号</button>' : '',
       purpose === "reset" ? '<button data-auth-mode="forgot">旧账号未绑定邮箱</button>' : '',
-      !available && purpose === "register" ? '<button data-auth-mode="register">本机测试注册</button>' : '',
+      registrationMode === "local" && purpose === "register" ? '<button data-auth-mode="register">本机测试注册</button>' : '',
       '</div></section></main>',
     ].join("");
   }
